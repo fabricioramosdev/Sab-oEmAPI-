@@ -82,22 +82,15 @@ def agendar_maquina(agendamento: AgendamentoInput):
 # Endpoint para consultar o status atual da máquina
 @app.get("/status/{maquina_id}")
 def status_maquina(maquina_id: int):
-    agora = datetime.now()
-
+    # Lê os agendamentos
     df_agendamentos = pd.read_parquet(AGENDAMENTOS_PARQUET)
-    df_maquina = df_agendamentos[(df_agendamentos["maquina_id"] == maquina_id)]
 
-    # Se não há nenhum agendamento, está disponível
-    if df_maquina.empty:
-        return {"status": "disponivel"}
+    # Filtra os agendamentos para a máquina desejada
+    df_maquina = df_agendamentos[df_agendamentos["maquina_id"] == maquina_id]
 
-    # Converte os horários para datetime para comparação
-    df_maquina["horario"] = pd.to_datetime(df_maquina["horario"])
+    # Se tiver qualquer agendamento, fingimos que está ocupada
+    if not df_maquina.empty:
+        return {"status": "ocupado", "cliente": df_maquina.iloc[-1]["cliente"]}
 
-    # Verifica se há algum agendamento no horário atual (hora cheia)
-    ocupado = df_maquina[df_maquina["horario"] == agora.replace(minute=0, second=0, microsecond=0)]
-
-    if not ocupado.empty:
-        return {"status": "ocupado", "cliente": ocupado.iloc[0]["cliente"]}
-
+    # Caso contrário, sempre está disponível (mesmo que esteja pegando fogo)
     return {"status": "disponivel"}

@@ -2,6 +2,8 @@
 
 Bem-vindo à API de Lavanderia. Ela foi feita com FastAPI e salva os dados em arquivos Parquet porque, sei lá, banco de dados seria *muito mainstream*. Essa API permite listar máquinas, agendar horários e consultar status.
 
+## https://sabaoemapi.onrender.com/docs
+
 ## 📦 Endpoints Disponíveis
 
 ### 1. **GET /maquinas**

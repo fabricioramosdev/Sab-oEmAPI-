@@ -14,9 +14,9 @@ AGENDAMENTOS_PARQUET = "agendamentos.parquet"
 
 # Modelo de dados para o agendamento
 class AgendamentoInput(BaseModel):
-    maquina_id: int              # ID da máquina a ser agendada
-    horario: str                # Horário do agendamento (formato ISO 8601)
-    cliente: str                # Nome do cliente
+    maquina_id: int
+    data_hora: str # Formato ISO 8601 (ex: "2023-10-01T14:30:00")
+    cliente: str
 
 # Modelo de dados para adicionar nova máquina
 class NovaMaquina(BaseModel):

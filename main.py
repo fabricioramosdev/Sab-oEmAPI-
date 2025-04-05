@@ -54,15 +54,17 @@ def agendar_maquina(agendamento: AgendamentoInput):
     if agendamento.maquina_id not in df_maquinas["maquina_id"].values:
         raise HTTPException(status_code=404, detail="Máquina não encontrada.")
 
-    # Converte o horário para datetime
-    horario_dt = datetime.fromisoformat(agendamento.horario)
+    try:
+        data_hora_dt = datetime.fromisoformat(agendamento.data_hora)
+    except ValueError:
+        raise HTTPException(status_code=400, detail="Formato de data/hora inválido. Use ISO 8601.")
 
     df_agendamentos = pd.read_parquet(AGENDAMENTOS_PARQUET)
 
     # Verifica se já existe agendamento para essa máquina nesse horário
     conflitos = df_agendamentos[
         (df_agendamentos["maquina_id"] == agendamento.maquina_id) &
-        (df_agendamentos["horario"] == agendamento.horario)
+        (df_agendamentos["data_hora"] == agendamento.data_hora)
     ]
 
     if not conflitos.empty:
@@ -71,7 +73,7 @@ def agendar_maquina(agendamento: AgendamentoInput):
     # Adiciona o novo agendamento
     novo_agendamento = pd.DataFrame([{ 
         "maquina_id": agendamento.maquina_id, 
-        "horario": agendamento.horario,
+        "data_hora": agendamento.data_hora,
         "cliente": agendamento.cliente
     }])
     df_agendamentos = pd.concat([df_agendamentos, novo_agendamento], ignore_index=True)
@@ -79,18 +81,26 @@ def agendar_maquina(agendamento: AgendamentoInput):
 
     return {"mensagem": "Agendamento realizado com sucesso."}
 
-# Endpoint para consultar o status atual da máquina
+
+
+# Endpoint para consultar o status atual da máquina com base na hora atual
 @app.get("/status/{maquina_id}")
 def status_maquina(maquina_id: int):
-    # Lê os agendamentos
-    df_agendamentos = pd.read_parquet(AGENDAMENTOS_PARQUET)
+    agora = datetime.now().replace(second=0, microsecond=0)
 
-    # Filtra os agendamentos para a máquina desejada
+    df_agendamentos = pd.read_parquet(AGENDAMENTOS_PARQUET)
     df_maquina = df_agendamentos[df_agendamentos["maquina_id"] == maquina_id]
 
-    # Se tiver qualquer agendamento, fingimos que está ocupada
-    if not df_maquina.empty:
-        return {"status": "ocupado", "cliente": df_maquina.iloc[-1]["cliente"]}
+    # Se não há nenhum agendamento, está disponível
+    if df_maquina.empty:
+        return {"status": "disponivel"}
 
-    # Caso contrário, sempre está disponível (mesmo que esteja pegando fogo)
+    df_maquina = df_maquina.copy()
+    df_maquina["data_hora"] = pd.to_datetime(df_maquina["data_hora"])
+
+    # Verifica se há agendamento para o horário exato atual
+    ocupado = df_maquina[df_maquina["data_hora"] == agora]
+    if not ocupado.empty:
+        return {"status": "ocupado", "cliente": ocupado.iloc[0]["cliente"]}
+
     return {"status": "disponivel"}
